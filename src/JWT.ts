@@ -391,14 +391,16 @@ export function verifyJWSDecoded(
   if (!Array.isArray(pubKeys)) pubKeys = [pubKeys]
 
   const iss = payload.iss
-  let level = 0
+  // let level = 0
   let recurse = true
   do {
-    console.log(`verifyJWSDecoded(): checking JWT at level ${level}`)
+    // console.log(`verifyJWSDecoded(): checking JWT at level ${level}`)
     if (iss !== payload.iss) throw new Error(`${JWT_ERROR.INVALID_JWT}: multiple issuers`)
 
     try {
-      return VerifierAlgorithm(header.alg)(data, signature, pubKeys)
+      const result = VerifierAlgorithm(header.alg)(data, signature, pubKeys)
+
+      return result
     } catch (e) {
       if (!(e as Error).message.startsWith(JWT_ERROR.INVALID_SIGNATURE)) throw e
     }
@@ -409,7 +411,7 @@ export function verifyJWSDecoded(
     } else {
       ;({ payload, header, signature, data } = decodeJWT(payload.jwt, false))
     }
-    level++
+    // level++
   } while (recurse)
 
   throw new Error(`${JWT_ERROR.INVALID_SIGNATURE}: no matching public key found`)
@@ -525,12 +527,12 @@ export async function verifyJWT(
     // Add to options object for recursive reference
     options.didAuthenticator = { didResolutionResult, authenticators, issuer }
   }
-  console.log(JSON.stringify(didResolutionResult.didDocument, null, 2))
-  console.log(
-    `verifyJWT(): verifying ${did} with 
-    ${options.didAuthenticator ? 'provided' : 'resolved'} authenticators:
-    ${authenticators.map((auth) => auth.id).join(', ')}`
-  )
+  // console.log(JSON.stringify(didResolutionResult.didDocument, null, 2))
+  // console.log(
+  //   `verifyJWT(): verifying ${did} with
+  //   ${options.didAuthenticator ? 'provided' : 'resolved'} authenticators:
+  //   ${authenticators.map((auth) => auth.id).join(', ')}`
+  // )
 
   const { didUrl } = parse(did) as ParsedDID
 
@@ -547,7 +549,12 @@ export async function verifyJWT(
     let i = 0
     while (!signer && i < authenticators.length) {
       const authenticator = authenticators[i]
-      signer = await verifyProof(jwt, { payload, header, signature, data }, authenticator, options)
+      try {
+        signer = await verifyProof(jwt, { payload, header, signature, data }, authenticator, options)
+      } catch (e) {
+        if (!(e as Error).message.includes(JWT_ERROR.INVALID_SIGNATURE) || i === authenticators.length - 1) throw e
+      }
+
       i++
     }
   }

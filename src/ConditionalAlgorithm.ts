@@ -1,16 +1,7 @@
-import type { DIDResolutionResult, VerificationMethod } from '@tonomy/did-resolver'
+import type { VerificationMethod } from '@tonomy/did-resolver'
 import { EcdsaSignature } from './util'
 import { JWT_ERROR } from './Errors'
-import {
-  decodeJWT,
-  JWSDecoded,
-  JWTDecoded,
-  JWTVerifyOptions,
-  resolveAuthenticator,
-  verifyJWSDecoded,
-  verifyJWT,
-} from './JWT'
-import SignerAlg from './SignerAlgorithm'
+import { JWTDecoded, JWTVerifyOptions, resolveAuthenticator, verifyJWSDecoded, verifyJWT } from './JWT'
 
 export type Signer = (data: string | Uint8Array) => Promise<EcdsaSignature | string>
 export type SignerAlgorithm = (payload: string, signer: Signer) => Promise<string>
@@ -69,7 +60,12 @@ async function verifyConditionWeightedThreshold(
 
     try {
       if (currentCondition.type === CONDITIONAL_PROOF_2022) {
-        console.log(`verifyConditionWeightedThreshold(): nested condition found in ${currentCondition.id}`)
+        // console.log(`verifyConditionWeightedThreshold(): nested condition found in ${currentCondition.id}`)
+
+        if (!options.didAuthenticator) {
+          throw new Error('Expected didAuthenticator')
+        }
+
         const newOptions = {
           ...options,
           ...{
@@ -85,7 +81,7 @@ async function verifyConditionWeightedThreshold(
           foundSigner = currentCondition
         }
       } else {
-        console.log(`verifyConditionWeightedThreshold(): testing to see if ${currentCondition.id} matches`)
+        // console.log(`verifyConditionWeightedThreshold(): testing to see if ${currentCondition.id} matches`)
         foundSigner = await verifyJWSDecoded({ header, payload, data, signature }, currentCondition)
       }
     } catch (e) {
@@ -93,13 +89,13 @@ async function verifyConditionWeightedThreshold(
     }
 
     if (foundSigner && !issuers.includes(foundSigner.id)) {
-      console.log(`verifyConditionWeightedThreshold(): signature valid and is unique for ${foundSigner.id}`)
+      // console.log(`verifyConditionWeightedThreshold(): signature valid and is unique for ${foundSigner.id}`)
       issuers.push(foundSigner.id)
       weightCount += weightedCondition.weight
 
-      console.log(
-        `verifyConditionWeightedThreshold(): signaturesThresholdCount ${weightCount} >= threshold ${threshold}`
-      )
+      // console.log(
+      //   `verifyConditionWeightedThreshold(): signaturesThresholdCount ${weightCount} >= threshold ${threshold}`
+      // )
       if (weightCount >= threshold) {
         return authenticator
       }
@@ -139,7 +135,7 @@ async function verifyConditionDelegated(
   }
 
   if (delegatedAuthenticator.type === CONDITIONAL_PROOF_2022) {
-    console.log(`verifyConditionDelegated(): nested condition found in ${delegatedAuthenticator.id}`)
+    // console.log(`verifyConditionDelegated(): nested condition found in ${delegatedAuthenticator.id}`)
     const { verified } = await verifyJWT(jwt, {
       ...options,
       ...{
@@ -155,7 +151,7 @@ async function verifyConditionDelegated(
     }
   } else {
     try {
-      console.log(`verifyConditionDelegated(): testing to see if ${authenticator.id} matches`)
+      // console.log(`verifyConditionDelegated(): testing to see if ${authenticator.id} matches`)
       foundSigner = await verifyJWSDecoded({ header, payload, data, signature }, delegatedAuthenticator)
     } catch (e) {
       if (!(e as Error).message.startsWith('invalid_signature:')) throw e
@@ -163,7 +159,7 @@ async function verifyConditionDelegated(
   }
 
   if (foundSigner) {
-    console.log(`verifyConditionDelegated(): signature valid and is unique for ${foundSigner.id}`)
+    // console.log(`verifyConditionDelegated(): signature valid and is unique for ${foundSigner.id}`)
     return authenticator
   }
 

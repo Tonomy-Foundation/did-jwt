@@ -18,6 +18,7 @@ import {
 import { EdDSASigner } from '../signers/EdDSASigner'
 import { ES256KSigner } from '../signers/ES256KSigner'
 import { bytesToBase64url, decodeBase64url } from '../util'
+import { JWT_ERROR } from '../Errors'
 
 const NOW = 1485321133
 MockDate.set(NOW * 1000 + 123)
